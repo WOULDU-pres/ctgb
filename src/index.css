@@ -1,0 +1,84 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 260 40% 8%; /* Dark Purplish Blue */
+    --foreground: 260 20% 95%;
+
+    --card: 260 40% 10%;
+    --card-foreground: 260 20% 95%;
+
+    --popover: 260 40% 8%;
+    --popover-foreground: 260 20% 95%;
+
+    /* Swapped and adjusted for Neon Theme */
+    --primary: 320 100% 60%; /* Vibrant Pink/Magenta - Main Neon */
+    --primary-foreground: 320 100% 95%; 
+    --primary-glow: 320 100% 75%; /* Brighter pink for glow */
+
+    --secondary: 180 100% 50%; /* Vibrant Cyan - Accent Neon */
+    --secondary-foreground: 180 100% 95%;
+    --secondary-glow: 180 100% 70%;
+
+    --muted: 260 40% 15%;
+    --muted-foreground: 260 15% 65%;
+
+    --accent: 320 100% 60%;
+    --accent-foreground: 320 100% 10%;
+
+    --destructive: 0 100% 60%; /* Neon Red */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 260 40% 20%;
+    --input: 260 40% 20%;
+    --ring: 320 100% 60%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Same as :root for a consistent dark theme */
+    --background: 260 40% 8%;
+    --foreground: 260 20% 95%;
+
+    --card: 260 40% 10%;
+    --card-foreground: 260 20% 95%;
+
+    --popover: 260 40% 8%;
+    --popover-foreground: 260 20% 95%;
+
+    --primary: 320 100% 60%;
+    --primary-foreground: 320 100% 95%;
+    --primary-glow: 320 100% 75%;
+
+    --secondary: 180 100% 50%;
+    --secondary-foreground: 180 100% 95%;
+    --secondary-glow: 180 100% 70%;
+
+    --muted: 260 40% 15%;
+    --muted-foreground: 260 15% 65%;
+
+    --accent: 320 100% 60%;
+    --accent-foreground: 320 100% 10%;
+
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 260 40% 20%;
+    --input: 260 40% 20%;
+    --ring: 320 100% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+}
