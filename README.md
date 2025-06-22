@@ -1,5 +1,5 @@
 
-# QuickTap Arena: 반응 속도 테스트 게임
+# Click the Green Button: 반응 속도 테스트 게임
 
 ## 프로젝트 개요
 
