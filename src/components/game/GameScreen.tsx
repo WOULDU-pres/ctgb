@@ -6,13 +6,13 @@ import WaitingScreen from "./states/WaitingScreen";
 import ReadyScreen from "./states/ReadyScreen";
 import TooSoonScreen from "./states/TooSoonScreen";
 import ResultDisplay from "./states/ResultDisplay";
-import { useGameLogic } from "@/hooks/useGameLogic";
+import { useGameLogic, GameMode } from "@/hooks/useGameLogic";
 
 type GameScreenProps = {
   onRoundComplete: (time: number) => void;
   round: number;
   totalRounds: number;
-  gameMode: "normal" | "ranked" | "target";
+  gameMode: GameMode;
 };
 
 const GameScreen = ({ onRoundComplete, round, totalRounds, gameMode }: GameScreenProps) => {
@@ -39,13 +39,37 @@ const GameScreen = ({ onRoundComplete, round, totalRounds, gameMode }: GameScree
         e.preventDefault();
         handleScreenClick();
       }
+      
+      // Color mode keyboard controls
+      if (gameMode === 'color' && gameState === 'ready') {
+        const colorKeys = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'];
+        const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
+        
+        const keyIndex = colorKeys.indexOf(e.code);
+        if (keyIndex >= 0) {
+          e.preventDefault();
+          const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+          handleTargetClick(fakeEvent, colors[keyIndex]);
+        }
+      }
+      
+      // Sequence mode keyboard controls
+      if (gameMode === 'sequence' && gameState === 'ready') {
+        const sequenceKeys = ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
+        const keyIndex = sequenceKeys.indexOf(e.code);
+        if (keyIndex >= 0) {
+          e.preventDefault();
+          const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+          handleTargetClick(fakeEvent, undefined, keyIndex);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleScreenClick]);
+  }, [handleScreenClick, handleTargetClick, gameMode, gameState]);
 
   const renderContent = () => {
     switch (gameState) {

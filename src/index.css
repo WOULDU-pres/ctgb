@@ -37,6 +37,10 @@
     --ring: 320 100% 60%;
 
     --radius: 0.5rem;
+    
+    /* PWA specific colors */
+    --green-glow: 120 100% 70%;
+    --purple-glow: 270 100% 70%;
   }
 
   .dark {
@@ -80,5 +84,163 @@
   body {
     @apply bg-background text-foreground;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    /* PWA optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Prevent overscroll bounce on iOS */
+    overscroll-behavior: none;
+    /* Disable pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
   }
+  
+  /* PWA specific optimizations */
+  html {
+    /* Disable zoom on double tap */
+    touch-action: manipulation;
+    /* Improve scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Safe area support for devices with notches */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Improve button tap targets on mobile */
+  button, [role="button"], input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Disable highlighting on touch */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection in specific elements */
+  input, textarea, [contenteditable], p, span {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer utilities {
+  /* PWA Utility Classes */
+  .shadow-glow-primary {
+    box-shadow: 0 0 20px hsla(var(--primary-glow), 0.3);
+  }
+  
+  .shadow-glow-secondary {
+    box-shadow: 0 0 20px hsla(var(--secondary-glow), 0.3);
+  }
+  
+  .shadow-glow-green {
+    box-shadow: 0 0 20px hsla(var(--green-glow), 0.3);
+  }
+  
+  .shadow-glow-purple {
+    box-shadow: 0 0 20px hsla(var(--purple-glow), 0.3);
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  /* Haptic feedback simulation */
+  .haptic-light {
+    animation: hapticLight 0.1s ease-in-out;
+  }
+  
+  .haptic-medium {
+    animation: hapticMedium 0.15s ease-in-out;
+  }
+  
+  /* Standalone mode adjustments */
+  @media (display-mode: standalone) {
+    .standalone-padding {
+      padding-top: 20px;
+    }
+  }
+  
+  /* iOS status bar adjustments */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .ios-safe-top {
+      padding-top: calc(env(safe-area-inset-top) + 1rem);
+    }
+  }
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 5px hsla(var(--primary), 0.5);
+  }
+  to {
+    text-shadow: 0 0 20px hsla(var(--primary), 0.8);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hapticLight {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes hapticMedium {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }

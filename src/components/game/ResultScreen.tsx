@@ -10,6 +10,11 @@ import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from "@/components/ui/chart";
 import { useAchievements } from "@/hooks/useAchievements";
 import { GameMode } from "@/hooks/useGameLogic";
+import { GameService } from "@/lib/services/game.service";
+import { AchievementService } from "@/lib/services/achievement.service";
+import { ChallengeService } from "@/lib/services/challenge.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { FriendsLeaderboard } from "@/components/social/FriendsLeaderboard";
 
 type ResultScreenProps = {
   results: number[];
@@ -21,12 +26,54 @@ type ResultScreenProps = {
 const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenProps) => {
   const resultCardRef = useRef<HTMLDivElement>(null);
   const { checkAchievements } = useAchievements();
+  const { user } = useAuth();
 
   useEffect(() => {
+    const saveGameResults = async () => {
+      if (results && gameMode && user) {
+        try {
+          const validResults = results.filter(r => r < 3000);
+          const average = validResults.length > 0 ? validResults.reduce((a, b) => a + b, 0) / validResults.length : 0;
+          const best = validResults.length > 0 ? Math.min(...validResults) : 0;
+          
+          // Calculate score based on performance
+          const score = Math.max(0, Math.round(1000 - (average - 200) * 2));
+          
+          // Save to database
+          await GameService.saveGameResult(gameMode, results, average, best, score);
+          
+          // Check and unlock achievements
+          await AchievementService.checkAndUnlockAchievements(user.id, results, gameMode);
+          
+          // Check for active challenges and submit score
+          try {
+            const activeChallenges = await ChallengeService.getActiveChallenges();
+            const matchingChallenge = activeChallenges.find(
+              challenge => challenge.game_mode === gameMode && 
+              (challenge.challenger_id === user.id ? challenge.challenger_score === null : challenge.challenged_score === null)
+            );
+            
+            if (matchingChallenge) {
+              await ChallengeService.submitChallengeScore(matchingChallenge.id, best);
+              toast.success('도전 점수가 제출되었습니다!');
+            }
+          } catch (challengeError) {
+            console.error('Failed to submit challenge score:', challengeError);
+          }
+          
+          toast.success('게임 결과가 저장되었습니다!');
+        } catch (error) {
+          console.error('Failed to save game results:', error);
+          toast.error('게임 결과 저장에 실패했습니다.');
+        }
+      }
+    };
+
     if (results && gameMode) {
       checkAchievements(results, gameMode);
+      saveGameResults();
     }
-  }, [results, gameMode, checkAchievements]);
+  }, [results, gameMode, checkAchievements, user]);
 
   const validResults = results.filter(r => r < 3000);
   const average = validResults.length > 0 ? validResults.reduce((a, b) => a + b, 0) / validResults.length : 0;
@@ -157,6 +204,7 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
 
         <div className="flex flex-col gap-8">
           <Leaderboard />
+          {user && <FriendsLeaderboard />}
           <div className="flex flex-col gap-4">
              <Button onClick={onRetry} size="lg" className="h-16 text-xl shadow-glow-primary hover:shadow-none w-full" aria-label="게임 다시하기">
                <RotateCw className="mr-2 h-6 w-6" />

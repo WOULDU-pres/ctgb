@@ -1,0 +1,332 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+## Task Logging and Change Management
+
+### Task Logging Rules and Format
+
+- **For every task execution, ensure that detailed progress logs are recorded using the following rules.**
+
+#### Logging Guidelines
+
+You are a senior technical documentation specialist tasked with creating a comprehensive changelog that serves both developers and end users. Create a detailed technical changelog following this EXACT format and structure:
+
+#### MANDATORY REQUIREMENTS:
+
+- **Mandatory Logging**: A changelog must be created for every task or modification.
+- **Depth over Breadth**: Each log entry must provide a deep, contextual understanding of the work performed. It should explain not just _what_ was changed, but _why_ it was changed, _how_ it works, and _how_ it was tested. The goal is to enable any developer to understand the change's full context without needing to ask the original author.
+- **Template Flexibility**: The provided template is a comprehensive guide. Sections that are not relevant to a specific task (e.g., 'Testing and Validation' for documentation changes) should be omitted. When omitting a section, the reason should be briefly stated to maintain clarity (e.g., _"Testing section omitted as this change is purely for documentation."_).
+- **Changelog Filename**: Use the format `YYYY-MM-DD_HH-mm_changelog.md` (e.g., `2025-06-27_21-30_changelog.md`).
+  - Date/time must be verified using the `date` command
+- **File Format**: Always use Markdown.
+- **Task Logging Rule Addition**: For every task, create a detailed changelog in `/changelogs/` with the format `YYYY-MM-DD_HH-mm_task_description_changelog.md`.
+- **Comprehensive Changelog Example**: Reference `/home/hwjoo/01-active-projects/mobile-applications/changelogs/2025-07-03_11-26_dashboard_api_integration_changelog.md` as the gold standard for detailed technical documentation that serves both developers and end users.
+
+#### REQUIRED SECTIONS (in this exact order):
+
+##### 1. Header Section
+
+```markdown
+# 📱 [Project Name] 업데이트 리포트
+
+📅 **업데이트 날짜**: YYYY년 MM월 DD일 HH:mm
+🚀 **프로젝트**: [Project Name]
+📋 **버전**: [version] - [description]
+```
+
+##### 2. Executive Summary
+
+- **무엇이 바뀌었나요?**: Simple explanation of changes
+- **사용자에게 주는 혜택**: List 3-4 concrete benefits with emojis:
+  - ⚡ **성능**: [performance improvements]
+  - 🔄 **기능**: [new features]
+  - 🛡️ **안정성**: [stability improvements]
+
+##### 3. Project Progress
+
+```markdown
+## 🚀 전체 프로젝트 진행 상황
+
+✅ **완료된 작업들:**
+
+- [x] T-001: [task name]
+- [x] T-002: [task name]
+      [List all completed tasks with checkboxes]
+
+## 📊 이번 업데이트의 핵심:
+
+### 🔄 Before vs After (무엇이 달라졌을까요?)
+
+#### **📱 이전 버전 (Before)**
+```
+
+👤 사용자가 앱을 열면...
+├── ⏳ [첫 번째 문제점 또는 제약사항]
+├── 🔄 [두 번째 문제점 또는 제약사항]
+├── ❌ [세 번째 문제점 또는 제약사항]
+├── 🤷 [네 번째 문제점 또는 제약사항]
+└── 📊 [다섯 번째 문제점 또는 제약사항]
+
+```
+
+#### **✨ 새로운 버전 (After)**
+```
+
+👤 사용자가 앱을 열면...
+├── 🎯 [첫 번째 개선 사항 설명]
+├── 🔄 [두 번째 개선 사항 설명]
+├── 📶 [세 번째 개선 사항 설명]
+├── ⚡ [네 번째 개선 사항 설명]
+├── 📊 [다섯 번째 개선 사항 설명]
+└── 🛡️ [여섯 번째 개선 사항 설명]
+
+```
+
+
+### 🎮 실제 사용 시나리오
+
+**📖 [사용자 페르소나]의 하루 (실제 사용 예시)**
+
+```
+
+🌅 [시간대 1]: [상황 1에 대한 설명]
+→ 📱 [기능의 첫 번째 동작 및 결과]
+→ 🔍 [기능의 두 번째 동작 및 결과]
+→ ⚡ [사용자가 얻는 최종적인 혜택]
+
+📶 [시간대 2]: [상황 2에 대한 설명]
+→ 🔄 [기능의 첫 번째 동작 및 결과]
+→ 📊 [기능의 두 번째 동작 및 결과]
+→ 💾 [사용자가 얻는 최종적인 혜택]
+
+```
+
+### 🏗️ 시스템 아키텍처 (앱이 어떻게 동작하는지)
+
+```
+
+📱 [컴포넌트 1 이름]
+↕️ ([상호작용 1 방식])
+🌐 [컴포넌트 2 이름]
+↕️ ([상호작용 2 방식])
+🤖 [컴포넌트 3 이름]
+
+📋 전체 플로우:
+
+1. 📱 [플로우 1단계 설명]
+2. 🔄 [플로우 2단계 설명]
+3. 🤖 [플로우 3단계 설명]
+4. ✅ [플로우 N단계 설명]
+
+````
+
+### 🛠️ 새로 만들어진 기능들
+
+#### **🎯 [기능명 1]**
+- **하는 일**: [기능의 핵심 역할에 대한 간결한 설명]
+- **사용자 혜택**: [이 기능이 사용자에게 주는 실질적인 가치]
+- **작동 방식**: [핵심적인 기술 구현 방식 또는 정책 요약]
+
+#### **🛡️ [기능명 2]**
+- **하는 일**: [기능의 핵심 역할에 대한 간결한 설명]
+- **사용자 혜택**: [이 기능이 사용자에게 주는 실질적인 가치]
+- **작동 방식**: [핵심적인 기술 구현 방식 또는 정책 요약]
+
+#### **🌐 [기능명 3]**
+- **하는 일**: [기능의 핵심 역할에 대한 간결한 설명]
+- **사용자 혜택**: [이 기능이 사용자에게 주는 실질적인 가치]
+- **작동 방식**: [핵심적인 기술 구현 방식 또는 정책 요약]
+
+#### **📊 [기능명 4]**
+- **하는 일**: [기능의 핵심 역할에 대한 간결한 설명]
+- **사용자 혜택**: [이 기능이 사용자에게 주는 실질적인 가치]
+- **작동 방식**: [핵심적인 기술 구현 방식 또는 정책 요약]
+
+
+##### 4. Detailed Problem Solutions
+
+For each major problem solved, include:
+
+```markdown
+#### **🎯 문제 [N]: [Problem Title]**
+
+**문제 상황:**
+
+- [Specific problem description]
+
+**기술적 해결방법:**
+
+- `[filename]` 파일 생성/수정
+  - [Specific implementation details]
+  - [Technologies/libraries used]
+
+**적용된 기술 원리:**
+
+- **[Pattern Name]**: [Application reason and effect]
+````
+
+##### 5. Performance Metrics
+
+Include before/after comparisons:
+
+```markdown
+## 📈 성과 지표 (숫자로 보는 개선 효과)
+
+### **⚡ 속도 개선**
+
+📊 평균 응답 시간
+이전: X초 → 현재: Y초 (Z% 개선)
+```
+
+##### 6. Developer Guide
+
+```markdown
+## 📋 개발자 가이드 (코드 구조 및 상호작용)
+
+### 📁 코드 아키텍처 및 파일 구조
+
+[Directory tree with descriptions]
+
+### 🔗 컴포넌트 상호작용 맵
+
+#### **시나리오 1: [User Action]**
+```
+
+1️⃣ 사용자: [specific action]
+↓
+2️⃣ [Component]: [action performed] → [next component] 호출
+↓
+3️⃣ [Result]: [final outcome]
+
+```
+
+```
+
+##### 7. Data Flow Analysis
+
+```markdown
+### 🔄 데이터 플로우 상세 분석
+
+#### **📱 예시: "[Data]" 가 화면에 나오기까지**
+```
+
+1️⃣ [Step]: [detailed description]
+2️⃣ [Step]: [detailed description]
+3️⃣ 화면 표시: [final result]
+
+```
+
+```
+
+##### 8. Technical Implementation Details
+
+Include:
+
+- **Core Technology Summary**: Role, key features, user benefits
+- **System Architecture**: Complete system structure
+- **Architecture Patterns**: Implementation details with code examples
+- **External Dependencies**: List with versions
+- **Debugging Points**: Common issues and solutions
+
+#### 9. FAQ Section
+
+Address 5 common questions:
+
+```markdown
+## 🤔 자주 묻는 질문 (FAQ)
+
+### **Q1: [Question]**
+
+A: [Answer with technical accuracy but user-friendly language]
+```
+
+##### 10. Glossary
+
+```markdown
+## 📚 용어 설명 (이해하기 쉬운 설명)
+
+### **🔄 [Technical Term]**
+
+- **쉬운 설명**: [Simple explanation]
+- **예시**: [Real-world analogy]
+```
+
+##### 11. Future Plans
+
+```markdown
+## 🚀 향후 계획
+
+### **🔜 단기 계획 (1-2개월 내)**
+
+- **[Feature Name]**: [Description]
+
+### **🎯 중기 계획 (3-6개월 내)**
+
+- **[Feature Name]**: [Description]
+```
+
+##### 12. Conclusion
+
+Summarize achievements and current project status
+
+### CRITICAL QUALITY STANDARDS:
+
+1. **Technical Accuracy**: All technical details must be factually correct
+2. **User-Centric Language**: Balance technical depth with accessibility
+3. **Comprehensive Coverage**: Include ALL aspects of the implementation
+4. **Practical Examples**: Provide concrete, real-world scenarios
+5. **Visual Formatting**: Use emojis, tables, code blocks, and hierarchical structure
+6. **Actionable Information**: Include debugging guides and extension points
+
+### WRITING STYLE REQUIREMENTS:
+
+- **Tone**: Professional yet approachable, similar to technical product documentation
+- **Detail Level**: Deep enough for developers to understand implementation decisions
+- **Structure**: Logical flow from high-level overview to implementation details
+- **Examples**: Include specific file paths, code snippets, and step-by-step processes
+- **Formatting**: Consistent use of markdown formatting, emojis, and visual hierarchy
+- **Emoji Usage**: Use emojis to visually categorize information and enhance readability. Each emoji should be contextually relevant to the content it precedes. The template provides a standard set of emojis to ensure consistency. When adding new content, adhere to this style. Key examples include:
+  - 🚀 for new features or project progress
+  - ⚡ for performance improvements
+  - 🛡️ for security or stability enhancements
+  - 🐛 for bug fixes
+  - 🔄 for updates, changes, or data flow
+  - 🎯 for objectives or specific functions
+  - 🎮 for user scenarios
+  - 🏗️ for architecture
+  - 📋 for guides or checklists
+  - ✅ for completed tasks or successful outcomes
+
+### VALIDATION CHECKLIST:
+
+Before completing the changelog, ensure:
+
+- [ ] All sections are present and properly formatted
+- [ ] Technical details are accurate and comprehensive
+- [ ] User benefits are clearly articulated
+- [ ] Code structure is thoroughly documented
+- [ ] Performance metrics are included with specific numbers
+- [ ] Future planning section is realistic and actionable
+- [ ] Language is consistently Korean throughout
+- [ ] Emoji usage matches the reference style
+- [ ] File structure diagrams are accurate
+- [ ] Debugging information is practical and specific
+
+Create a changelog that demonstrates the same level of thoroughness, technical depth, and user-focused clarity as the reference file, serving as both comprehensive technical documentation and accessible user communication.
+
+```
+
+## Usage Notes
+
+This prompt is designed to generate changelogs that:
+- Serve as definitive technical documentation
+- Provide clear user communication
+- Include comprehensive developer guides
+- Maintain consistent formatting and style
+- Balance technical depth with accessibility
+
+The resulting changelog should be a complete reference document that any developer can use to understand the full context and implementation details of the work performed. Never put false information.
+```

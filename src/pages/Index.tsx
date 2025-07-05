@@ -5,9 +5,9 @@ import GameScreen from "@/components/game/GameScreen";
 import ResultScreen from "@/components/game/ResultScreen";
 import { SettingsToggle } from "@/components/SettingsToggle";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { GameMode } from "@/hooks/useGameLogic";
 
 type AppState = 'menu' | 'playing' | 'results';
-type GameMode = 'normal' | 'ranked' | 'target';
 
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('menu');
@@ -15,7 +15,7 @@ const Index = () => {
   const [results, setResults] = useState<number[]>([]);
   const [profile, setProfile] = useState({ nickname: 'Guest', characteristic: '새로운 도전자' });
 
-  const totalRounds = gameMode === 'ranked' || gameMode === 'target' ? 10 : 1;
+  const totalRounds = gameMode === 'ranked' || gameMode === 'target' || gameMode === 'color' || gameMode === 'sequence' ? 10 : 1;
 
   const handleStartGame = useCallback((mode: GameMode) => {
     setGameMode(mode);

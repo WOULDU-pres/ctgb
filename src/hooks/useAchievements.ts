@@ -1,8 +1,10 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { GameMode } from './useGameLogic';
 import { Award, Trophy, Star, Medal } from 'lucide-react';
+import { AchievementService } from '@/lib/services/achievement.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type AchievementID = 'FIRST_GAME' | 'SUB_200' | 'RANKED_FINISHER' | 'TARGET_MASTER';
 
@@ -35,7 +37,37 @@ const getUnlockedAchievements = (): Set<AchievementID> => {
 };
 
 export const useAchievements = () => {
+  const { user } = useAuth();
   const [unlockedIds, setUnlockedIds] = useState<Set<AchievementID>>(getUnlockedAchievements());
+
+  // Sync achievements when user logs in
+  useEffect(() => {
+    const syncAchievements = async () => {
+      if (user) {
+        try {
+          // Sync local achievements to server
+          await AchievementService.syncLocalAchievements(unlockedIds);
+          
+          // Load achievements from server
+          const serverAchievements = await AchievementService.getUserAchievements(user.id);
+          const serverAchievementIds = new Set(serverAchievements.map(a => a.achievement_id as AchievementID));
+          
+          setUnlockedIds(serverAchievementIds);
+          
+          // Update localStorage
+          try {
+            localStorage.setItem('unlockedAchievements', JSON.stringify(Array.from(serverAchievementIds)));
+          } catch (error) {
+            console.error('Failed to save achievements to localStorage', error);
+          }
+        } catch (error) {
+          console.error('Failed to sync achievements:', error);
+        }
+      }
+    };
+
+    syncAchievements();
+  }, [user, unlockedIds]);
 
   const unlockAchievement = useCallback((id: AchievementID) => {
     if (!unlockedIds.has(id)) {

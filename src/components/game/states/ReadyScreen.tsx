@@ -1,13 +1,25 @@
 
-import type { TargetProps } from "@/hooks/useGameLogic";
+import type { TargetProps, GameMode } from "@/hooks/useGameLogic";
+import ColorModeScreen from "./ColorModeScreen";
+import SequenceModeScreen from "./SequenceModeScreen";
 
 type ReadyScreenProps = {
-  gameMode: "normal" | "ranked" | "target";
+  gameMode: GameMode;
   targetProps: TargetProps | null;
-  onTargetClick: (e: React.MouseEvent) => void;
+  onTargetClick: (e: React.MouseEvent, colorChoice?: string, sequenceChoice?: number) => void;
 };
 
 const ReadyScreen = ({ gameMode, targetProps, onTargetClick }: ReadyScreenProps) => {
+  const handleColorClick = (color: string) => {
+    const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+    onTargetClick(fakeEvent, color);
+  };
+
+  const handleSequenceClick = (choice: number) => {
+    const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+    onTargetClick(fakeEvent, undefined, choice);
+  };
+
   if (gameMode === "target") {
     return (
       targetProps && (
@@ -28,6 +40,14 @@ const ReadyScreen = ({ gameMode, targetProps, onTargetClick }: ReadyScreenProps)
         </button>
       )
     );
+  }
+
+  if (gameMode === "color" && targetProps) {
+    return <ColorModeScreen targetProps={targetProps} onColorClick={handleColorClick} />;
+  }
+
+  if (gameMode === "sequence" && targetProps) {
+    return <SequenceModeScreen targetProps={targetProps} onSequenceClick={handleSequenceClick} />;
   }
 
   return (
