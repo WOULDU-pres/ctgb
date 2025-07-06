@@ -1,210 +1,244 @@
-
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Target, Square, Triangle, Star } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-export type GameState = "waiting" | "ready" | "result" | "tooSoon";
-export type GameMode = "normal" | "ranked" | "target" | "color" | "sequence";
-
-export type TargetProps = {
-  top: string;
-  left: string;
-  size: number;
-  shape: React.ElementType;
-  color: string;
-  correctColor?: string;
-  targetSequence?: number[];
-  currentSequence?: number[];
-  sequenceStep?: number;
-};
+import { useCallback, useEffect, useState } from "react";
+import { useGameState, GameMode, GameState, TargetProps } from "./useGameState";
+import { useGameTimer } from "./useGameTimer";
+import { useGameModeLogic } from "./useGameModeLogic";
 
 type UseGameLogicProps = {
   onRoundComplete: (time: number) => void;
   round: number;
   gameMode: GameMode;
   isCountdownOver: boolean;
+  onError?: (error: Error) => void;
 };
 
-export const useGameLogic = ({ onRoundComplete, round, gameMode, isCountdownOver }: UseGameLogicProps) => {
-  const isMobile = useIsMobile();
-  const [gameState, setGameState] = useState<GameState>("waiting");
-  const [reactionTime, setReactionTime] = useState<number | null>(null);
-  const [targetProps, setTargetProps] = useState<TargetProps | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const missTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(0);
+export const useGameLogic = ({
+  onRoundComplete,
+  round,
+  gameMode,
+  isCountdownOver,
+  onError,
+}: UseGameLogicProps) => {
+  const [isGameActive, setIsGameActive] = useState(false);
 
-  const cleanupTimeouts = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (missTimeoutRef.current) clearTimeout(missTimeoutRef.current);
-  }, []);
+  const {
+    gameState,
+    reactionTime,
+    targetProps,
+    setTargetProps,
+    resetGame,
+    startGame,
+    endGame,
+    setTooSoon,
+    backgroundColor,
+  } = useGameState({ gameMode });
 
+  const handleTimerError = useCallback(
+    (error: Error) => {
+      console.error("Timer error:", error);
+      onError?.(error);
+      // 에러 발생 시 게임 상태 초기화
+      resetGame();
+    },
+    [onError, resetGame]
+  );
+
+  const handleGameModeError = useCallback(
+    (error: Error) => {
+      console.error("Game mode error:", error);
+      onError?.(error);
+    },
+    [onError]
+  );
+
+  const handleGameReady = useCallback(() => {
+    try {
+      startGame();
+      setIsGameActive(true);
+    } catch (error) {
+      handleTimerError(
+        error instanceof Error ? error : new Error("Game start failed")
+      );
+    }
+  }, [startGame, handleTimerError]);
+
+  const { startTimer, startMissTimer, getElapsedTime, stop, cleanup } =
+    useGameTimer({
+      onTimeout: handleGameReady,
+      onError: handleTimerError,
+    });
+
+  const { setupGameMode, getRandomDelay } = useGameModeLogic({
+    gameMode,
+    round,
+    onSetTargetProps: setTargetProps,
+    onError: handleGameModeError,
+  });
+
+  // 게임 초기화 및 시작
   useEffect(() => {
-    if (!isCountdownOver) return;
+    if (!isCountdownOver) {
+      setIsGameActive(false);
+      return;
+    }
 
-    const randomDelay = Math.random() * 2000 + 1000;
-    timerRef.current = setTimeout(() => {
-      if (gameMode === "target") {
-        const top = `${Math.random() * 80 + 10}%`;
-        const left = `${Math.random() * 80 + 10}%`;
-        
-        const baseSize = isMobile ? 110 : 90;
-        const minSize = isMobile ? 45 : 30;
-        const size = Math.max(minSize, baseSize - round * 5);
+    try {
+      resetGame();
+      const delay = getRandomDelay();
+      const timeLimit = setupGameMode();
 
-        const shapes = [Target, Square, Triangle, Star];
-        const ShapeComponent = shapes[Math.floor(Math.random() * shapes.length)];
-        
-        setTargetProps({ top, left, size, shape: ShapeComponent, color: 'bg-primary' });
+      // 게임 시작 타이머
+      startTimer(delay);
 
-        const timeLimit = Math.max(1000, 2500 - round * 100);
-        missTimeoutRef.current = setTimeout(() => {
-            if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-            onRoundComplete(3000);
-        }, timeLimit);
-
-        setTimeout(() => {
-            setTargetProps(prev => prev ? { ...prev, color: 'bg-secondary' } : null);
-        }, timeLimit / 2);
-      } else if (gameMode === "color") {
-        const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
-        const correctColor = colors[Math.floor(Math.random() * colors.length)];
-        const displayedColors = [correctColor];
-        
-        // Add 2-3 incorrect colors
-        while (displayedColors.length < 4) {
-          const wrongColor = colors[Math.floor(Math.random() * colors.length)];
-          if (!displayedColors.includes(wrongColor)) {
-            displayedColors.push(wrongColor);
-          }
-        }
-        
-        // Shuffle the colors
-        for (let i = displayedColors.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [displayedColors[i], displayedColors[j]] = [displayedColors[j], displayedColors[i]];
-        }
-
-        setTargetProps({ 
-          top: '50%', 
-          left: '50%', 
-          size: 80, 
-          shape: Square, 
-          color: displayedColors[0],
-          correctColor 
+      // 타겟 모드의 경우 시간 제한 설정
+      if (timeLimit > 0) {
+        startMissTimer(delay + timeLimit, () => {
+          if ("vibrate" in navigator) navigator.vibrate([100, 30, 100]);
+          onRoundComplete(3000);
         });
-
-        const timeLimit = Math.max(2000, 3000 - round * 100);
-        missTimeoutRef.current = setTimeout(() => {
-            if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-            onRoundComplete(3000);
-        }, timeLimit);
-      } else if (gameMode === "sequence") {
-        const sequenceLength = Math.min(3 + Math.floor(round / 2), 8);
-        const targetSequence = Array.from({ length: sequenceLength }, () => Math.floor(Math.random() * 4));
-        
-        setTargetProps({ 
-          top: '50%', 
-          left: '50%', 
-          size: 60, 
-          shape: Square, 
-          color: 'bg-primary',
-          targetSequence,
-          currentSequence: [],
-          sequenceStep: 0
-        });
-
-        const timeLimit = Math.max(3000, 5000 - round * 200);
-        missTimeoutRef.current = setTimeout(() => {
-            if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-            onRoundComplete(3000);
-        }, timeLimit);
       }
-      setGameState("ready");
-      startTimeRef.current = performance.now();
-    }, randomDelay);
+    } catch (error) {
+      handleTimerError(
+        error instanceof Error ? error : new Error("Game initialization failed")
+      );
+    }
 
-    return cleanupTimeouts;
-  }, [isCountdownOver, gameMode, round, onRoundComplete, cleanupTimeouts, isMobile]);
+    return () => {
+      cleanup();
+      setIsGameActive(false);
+    };
+  }, [
+    isCountdownOver,
+    gameMode,
+    round,
+    onRoundComplete,
+    resetGame,
+    getRandomDelay,
+    setupGameMode,
+    startTimer,
+    startMissTimer,
+    cleanup,
+    handleTimerError,
+  ]);
 
   const handleSuccess = useCallback(() => {
-    cleanupTimeouts();
-    const endTime = performance.now();
-    const time = endTime - startTimeRef.current;
-    setReactionTime(time);
-    setGameState("result");
-    if ('vibrate' in navigator) navigator.vibrate(50);
-  }, [cleanupTimeouts]);
-  
-  const handleScreenClick = useCallback(() => {
-    if (!isCountdownOver) return;
+    try {
+      if (!isGameActive) return;
 
-    if (gameState === "waiting") {
-      cleanupTimeouts();
-      setGameState("tooSoon");
-      if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-    } else if (gameState === "ready") {
-      if (gameMode === "normal" || gameMode === "ranked") {
-        handleSuccess();
-      }
-    } else if (gameState === "tooSoon") {
-      onRoundComplete(5000);
-    } else if (gameState === "result" && reactionTime !== null) {
-      onRoundComplete(reactionTime);
+      stop();
+      const time = getElapsedTime();
+      endGame(time);
+      setIsGameActive(false);
+
+      if ("vibrate" in navigator) navigator.vibrate(50);
+    } catch (error) {
+      handleTimerError(
+        error instanceof Error ? error : new Error("Success handling failed")
+      );
     }
-  }, [isCountdownOver, gameState, gameMode, reactionTime, onRoundComplete, cleanupTimeouts, handleSuccess]);
-  
-  const handleTargetClick = useCallback((e: React.MouseEvent, colorChoice?: string, sequenceChoice?: number) => {
-    e.stopPropagation();
-    if (gameState === "ready") {
-      if (gameMode === "target") {
-        handleSuccess();
-      } else if (gameMode === "color" && targetProps?.correctColor) {
-        if (colorChoice === targetProps.correctColor) {
+  }, [isGameActive, stop, getElapsedTime, endGame, handleTimerError]);
+
+  const handleScreenClick = useCallback(() => {
+    try {
+      if (!isCountdownOver) return;
+
+      if (gameState === "waiting") {
+        stop();
+        setTooSoon();
+        setIsGameActive(false);
+        if ("vibrate" in navigator) navigator.vibrate([100, 30, 100]);
+      } else if (gameState === "ready") {
+        if (gameMode === "normal" || gameMode === "ranked") {
           handleSuccess();
-        } else {
-          if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-          onRoundComplete(3000);
         }
-      } else if (gameMode === "sequence" && targetProps?.targetSequence && sequenceChoice !== undefined) {
-        const newSequence = [...(targetProps.currentSequence || []), sequenceChoice];
-        const currentStep = targetProps.sequenceStep || 0;
-        
-        if (sequenceChoice === targetProps.targetSequence[currentStep]) {
-          if (newSequence.length === targetProps.targetSequence.length) {
+      } else if (gameState === "tooSoon") {
+        onRoundComplete(5000);
+      } else if (gameState === "result" && reactionTime !== null) {
+        onRoundComplete(reactionTime);
+      }
+    } catch (error) {
+      handleTimerError(
+        error instanceof Error
+          ? error
+          : new Error("Screen click handling failed")
+      );
+    }
+  }, [
+    isCountdownOver,
+    gameState,
+    gameMode,
+    reactionTime,
+    onRoundComplete,
+    stop,
+    setTooSoon,
+    handleSuccess,
+    handleTimerError,
+  ]);
+
+  const handleTargetClick = useCallback(
+    (e: React.MouseEvent, colorChoice?: string, sequenceChoice?: number) => {
+      try {
+        e.stopPropagation();
+
+        if (gameState !== "ready" || !isGameActive) return;
+
+        if (gameMode === "target") {
+          handleSuccess();
+        } else if (gameMode === "color" && targetProps?.correctColor) {
+          if (colorChoice === targetProps.correctColor) {
             handleSuccess();
           } else {
-            setTargetProps(prev => prev ? {
-              ...prev,
-              currentSequence: newSequence,
-              sequenceStep: currentStep + 1
-            } : null);
+            if ("vibrate" in navigator) navigator.vibrate([100, 30, 100]);
+            onRoundComplete(3000);
           }
-        } else {
-          if ('vibrate' in navigator) navigator.vibrate([100, 30, 100]);
-          onRoundComplete(3000);
-        }
-      }
-    }
-  }, [gameState, gameMode, targetProps, handleSuccess, onRoundComplete]);
+        } else if (
+          gameMode === "sequence" &&
+          targetProps?.targetSequence &&
+          sequenceChoice !== undefined
+        ) {
+          const newSequence = [
+            ...(targetProps.currentSequence || []),
+            sequenceChoice,
+          ];
+          const currentStep = targetProps.sequenceStep || 0;
 
-  const getBackgroundColor = () => {
-    if (gameMode === "target" && gameState !== "result" && gameState !== "tooSoon") {
-      return "bg-background";
-    }
-    switch (gameState) {
-      case "waiting":
-      case "tooSoon":
-        return "bg-destructive";
-      case "ready":
-        if (gameMode !== "target") {
-          return "bg-primary";
+          if (sequenceChoice === targetProps.targetSequence[currentStep]) {
+            if (newSequence.length === targetProps.targetSequence.length) {
+              handleSuccess();
+            } else {
+              setTargetProps((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      currentSequence: newSequence,
+                      sequenceStep: currentStep + 1,
+                    }
+                  : null
+              );
+            }
+          } else {
+            if ("vibrate" in navigator) navigator.vibrate([100, 30, 100]);
+            onRoundComplete(3000);
+          }
         }
-        return "bg-background";
-      default:
-        return "bg-background";
-    }
-  };
+      } catch (error) {
+        handleTimerError(
+          error instanceof Error
+            ? error
+            : new Error("Target click handling failed")
+        );
+      }
+    },
+    [
+      gameState,
+      gameMode,
+      targetProps,
+      isGameActive,
+      handleSuccess,
+      onRoundComplete,
+      setTargetProps,
+      handleTimerError,
+    ]
+  );
 
   return {
     gameState,
@@ -212,7 +246,10 @@ export const useGameLogic = ({ onRoundComplete, round, gameMode, isCountdownOver
     targetProps,
     handleScreenClick,
     handleTargetClick,
-    backgroundColor: getBackgroundColor(),
+    backgroundColor,
     setTargetProps,
   };
 };
+
+// 타입들을 re-export
+export type { GameState, GameMode, TargetProps } from "./useGameState";
