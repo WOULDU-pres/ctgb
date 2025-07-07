@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { GameResult, Leaderboard } from '@/lib/database.types'
 import { GameMode } from '@/hooks/useGameLogic'
 import { OfflineService } from './offline.service'
+import { ErrorHandler, NetworkError, GameError, ErrorSeverity } from '@/lib/errors'
 
 export class GameService {
   static async saveGameResult(
@@ -42,7 +43,13 @@ export class GameService {
         .single()
 
       if (error) {
-        console.error('Failed to save online, using offline storage:', error);
+        const networkError = new NetworkError(
+          'Failed to save game result to server',
+          ErrorSeverity.MEDIUM,
+          error.code ? parseInt(error.code) : undefined,
+          'game_results'
+        );
+        ErrorHandler.handle(networkError, { gameMode, component: 'GameService.saveGameResult' });
         return null;
       }
 
@@ -51,7 +58,14 @@ export class GameService {
 
       return data
     } catch (error) {
-      console.error('Error saving game result online:', error);
+      const gameError = new GameError(
+        'Unexpected error while saving game result',
+        ErrorSeverity.HIGH,
+        'SAVE_RESULT_FAILED',
+        { originalError: error instanceof Error ? error.message : String(error) },
+        { gameMode, component: 'GameService.saveGameResult' }
+      );
+      ErrorHandler.handle(gameError);
       return null;
     }
   }
@@ -111,7 +125,7 @@ export class GameService {
 
       if (error) throw error
 
-      return data.map((entry: any) => ({
+      return data.map((entry: Leaderboard & { users: { nickname: string } }) => ({
         id: entry.id,
         user_id: entry.user_id,
         game_mode: entry.game_mode,

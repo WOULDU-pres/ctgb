@@ -1,11 +1,22 @@
 
-import { useState, useCallback } from "react";
-import MenuScreen from "@/components/game/MenuScreen";
-import GameScreen from "@/components/game/GameScreen";
-import ResultScreen from "@/components/game/ResultScreen";
+import { useState, useCallback, Suspense, lazy, memo, useMemo } from "react";
 import { SettingsToggle } from "@/components/SettingsToggle";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TutorialHelpButton } from "@/components/tutorial/TutorialProvider";
 import { GameMode } from "@/hooks/useGameLogic";
+
+// Lazy load game components for better code splitting
+const MenuScreen = lazy(() => import("@/components/game/MenuScreen"));
+const GameScreen = lazy(() => import("@/components/game/GameScreen"));
+const ResultScreen = lazy(() => import("@/components/game/ResultScreen"));
+
+// Memoized loading fallback component to prevent re-creation
+const LoadingSpinner = memo(() => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+));
+LoadingSpinner.displayName = 'LoadingSpinner';
 
 type AppState = 'menu' | 'playing' | 'results';
 
@@ -15,7 +26,10 @@ const Index = () => {
   const [results, setResults] = useState<number[]>([]);
   const [profile, setProfile] = useState({ nickname: 'Guest', characteristic: '새로운 도전자' });
 
-  const totalRounds = gameMode === 'ranked' || gameMode === 'target' || gameMode === 'color' || gameMode === 'sequence' ? 10 : 1;
+  // Memoize totalRounds calculation to prevent recalculation on every render
+  const totalRounds = useMemo(() => {
+    return gameMode === 'ranked' || gameMode === 'target' || gameMode === 'color' || gameMode === 'sequence' ? 10 : 1;
+  }, [gameMode]);
 
   const handleStartGame = useCallback((mode: GameMode) => {
     setGameMode(mode);
@@ -37,37 +51,57 @@ const Index = () => {
     setAppState('menu');
   }, []);
 
-  const renderApp = () => {
+  // Memoize retry handler to prevent ResultScreen re-renders
+  const handleRetry = useCallback(() => handleStartGame(gameMode), [handleStartGame, gameMode]);
+
+  // Memoize current round calculation
+  const currentRound = useMemo(() => results.length + 1, [results.length]);
+
+  // Memoize the render function to prevent unnecessary re-calculations
+  const renderApp = useMemo(() => {
     switch (appState) {
       case 'menu':
-        return <MenuScreen onStartGame={handleStartGame} />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <MenuScreen onStartGame={handleStartGame} />
+          </Suspense>
+        );
       case 'playing':
         return (
-          <GameScreen
-            key={results.length}
-            round={results.length + 1}
-            totalRounds={totalRounds}
-            onRoundComplete={handleRoundComplete}
-            gameMode={gameMode}
-          />
+          <Suspense fallback={<LoadingSpinner />}>
+            <GameScreen
+              key={results.length}
+              round={currentRound}
+              totalRounds={totalRounds}
+              onRoundComplete={handleRoundComplete}
+              gameMode={gameMode}
+            />
+          </Suspense>
         );
       case 'results':
         return (
-          <ResultScreen
-            results={results}
-            onRetry={() => handleStartGame(gameMode)}
-            onGoToMenu={handleGoToMenu}
-            gameMode={gameMode}
-          />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ResultScreen
+              results={results}
+              onRetry={handleRetry}
+              onGoToMenu={handleGoToMenu}
+              gameMode={gameMode}
+            />
+          </Suspense>
         );
       default:
-        return <MenuScreen onStartGame={handleStartGame} />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <MenuScreen onStartGame={handleStartGame} />
+          </Suspense>
+        );
     }
-  };
+  }, [appState, handleStartGame, currentRound, totalRounds, handleRoundComplete, gameMode, results, handleRetry, handleGoToMenu]);
 
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground">
        <header className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <TutorialHelpButton />
         <SettingsToggle />
         <ProfileAvatar
           nickname={profile.nickname}
@@ -77,11 +111,12 @@ const Index = () => {
       </header>
       <div className="min-h-screen w-full flex items-center justify-center">
         <div className="w-full max-w-6xl px-4">
-          {renderApp()}
+          {renderApp}
         </div>
       </div>
     </div>
   );
 };
 
-export default Index;
+// Memo wrap the entire Index component to prevent unnecessary re-renders
+export default memo(Index);

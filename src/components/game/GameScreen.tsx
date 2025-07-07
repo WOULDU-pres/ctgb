@@ -1,12 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense, lazy, memo, useMemo } from "react";
 import Countdown from "./Countdown";
 import GameHeader from "./GameHeader";
-import WaitingScreen from "./states/WaitingScreen";
-import ReadyScreen from "./states/ReadyScreen";
-import TooSoonScreen from "./states/TooSoonScreen";
-import ResultDisplay from "./states/ResultDisplay";
 import { useGameLogic, GameMode } from "@/hooks/useGameLogic";
 import { GameErrorBoundary } from "@/components/ErrorBoundary";
+
+// Lazy load game state components
+const WaitingScreen = lazy(() => import("./states/WaitingScreen"));
+const ReadyScreen = lazy(() => import("./states/ReadyScreen"));
+const TooSoonScreen = lazy(() => import("./states/TooSoonScreen"));
+const ResultDisplay = lazy(() => import("./states/ResultDisplay"));
+
+// Memoized loading fallback for game states
+const GameStateLoader = memo(() => (
+  <div className="flex items-center justify-center w-full h-full">
+    <div className="animate-pulse text-muted-foreground">Loading...</div>
+  </div>
+));
+GameStateLoader.displayName = 'GameStateLoader';
 
 type GameScreenProps = {
   onRoundComplete: (time: number) => void;
@@ -24,7 +34,9 @@ const GameScreen = ({
   onError,
 }: GameScreenProps) => {
   const [showCountdown, setShowCountdown] = useState(round === 1);
-  const isCountdownOver = !showCountdown;
+  
+  // Memoize countdown state to prevent unnecessary recalculations
+  const isCountdownOver = useMemo(() => !showCountdown, [showCountdown]);
 
   const handleGameError = useCallback(
     (error: Error) => {
@@ -115,23 +127,38 @@ const GameScreen = ({
     handleGameError,
   ]);
 
-  const renderContent = () => {
+  // Memoize the render content to prevent unnecessary re-calculations
+  const renderContent = useMemo(() => {
     try {
       switch (gameState) {
         case "waiting":
-          return <WaitingScreen gameMode={gameMode} />;
+          return (
+            <Suspense fallback={<GameStateLoader />}>
+              <WaitingScreen gameMode={gameMode} />
+            </Suspense>
+          );
         case "ready":
           return (
-            <ReadyScreen
-              gameMode={gameMode}
-              targetProps={targetProps}
-              onTargetClick={handleTargetClick}
-            />
+            <Suspense fallback={<GameStateLoader />}>
+              <ReadyScreen
+                gameMode={gameMode}
+                targetProps={targetProps}
+                onTargetClick={handleTargetClick}
+              />
+            </Suspense>
           );
         case "tooSoon":
-          return <TooSoonScreen />;
+          return (
+            <Suspense fallback={<GameStateLoader />}>
+              <TooSoonScreen />
+            </Suspense>
+          );
         case "result":
-          return <ResultDisplay reactionTime={reactionTime} />;
+          return (
+            <Suspense fallback={<GameStateLoader />}>
+              <ResultDisplay reactionTime={reactionTime} />
+            </Suspense>
+          );
         default:
           return null;
       }
@@ -141,7 +168,7 @@ const GameScreen = ({
       );
       return null;
     }
-  };
+  }, [gameState, gameMode, targetProps, handleTargetClick, reactionTime, handleGameError]);
 
   if (showCountdown) {
     return (
@@ -165,11 +192,11 @@ const GameScreen = ({
       >
         <GameHeader round={round} totalRounds={totalRounds} />
         <div className="w-full max-w-4xl px-4 relative h-full flex items-center justify-center">
-          {renderContent()}
+          {renderContent}
         </div>
       </div>
     </GameErrorBoundary>
   );
 };
 
-export default GameScreen;
+export default memo(GameScreen);

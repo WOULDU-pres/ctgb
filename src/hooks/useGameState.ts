@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 export type GameState = "waiting" | "ready" | "result" | "tooSoon";
 export type GameMode = "normal" | "ranked" | "target" | "color" | "sequence";
@@ -43,7 +43,8 @@ export const useGameState = ({ gameMode }: UseGameStateProps) => {
     setGameState("tooSoon");
   }, []);
 
-  const getBackgroundColor = useCallback(() => {
+  // Memoize background color calculation for better performance
+  const backgroundColor = useMemo(() => {
     if (
       gameMode === "target" &&
       gameState !== "result" &&
@@ -65,7 +66,8 @@ export const useGameState = ({ gameMode }: UseGameStateProps) => {
     }
   }, [gameMode, gameState]);
 
-  return {
+  // Memoize return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     gameState,
     reactionTime,
     targetProps,
@@ -74,6 +76,6 @@ export const useGameState = ({ gameMode }: UseGameStateProps) => {
     startGame,
     endGame,
     setTooSoon,
-    backgroundColor: getBackgroundColor(),
-  };
+    backgroundColor,
+  }), [gameState, reactionTime, targetProps, resetGame, startGame, endGame, setTooSoon, backgroundColor]);
 };

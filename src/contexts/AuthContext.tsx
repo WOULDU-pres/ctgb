@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@/lib/database.types'
 import { AuthService } from '@/lib/services/auth.service'
+import { ErrorHandler, AuthError } from '@/lib/errors'
 
 interface AuthContextType {
   user: User | null

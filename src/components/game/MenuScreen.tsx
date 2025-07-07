@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Gamepad2, Trophy, Target, Keyboard, Smartphone, BarChart3, Users, Swords, Palette, Brain } from "lucide-react";
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { AchievementsDialog } from "./AchievementsDialog";
 import { useAchievements } from "@/hooks/useAchievements";
 import { UserStatsDialog } from "@/components/stats/UserStatsDialog";
@@ -18,36 +18,47 @@ const MenuScreen = ({ onStartGame }: MenuScreenProps) => {
   const { unlockedIds } = useAchievements();
   const { user } = useAuth();
 
+  // Memoize game mode handlers to prevent button re-renders
+  const handleNormalMode = useCallback(() => onStartGame('normal'), [onStartGame]);
+  const handleRankedMode = useCallback(() => onStartGame('ranked'), [onStartGame]);
+  const handleTargetMode = useCallback(() => onStartGame('target'), [onStartGame]);
+  const handleColorMode = useCallback(() => onStartGame('color'), [onStartGame]);
+  const handleSequenceMode = useCallback(() => onStartGame('sequence'), [onStartGame]);
+
+  // Memoize achievement dialog handlers
+  const handleShowAchievements = useCallback(() => setShowAchievements(true), []);
+  const handleCloseAchievements = useCallback(() => setShowAchievements(false), []);
+
   return (
     <>
       <div className="text-center animate-fade-in flex flex-col items-center justify-center h-full py-8 sm:py-16">
         <h1 className="text-4xl sm:text-6xl font-bold tracking-tighter mb-4 text-primary animate-glow">QuickTap Arena</h1>
         <p className="text-lg sm:text-xl text-muted-foreground mb-12">플레이할 모드를 선택하세요</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 w-full px-4 sm:px-0 max-w-7xl">
-          <Button onClick={() => onStartGame('normal')} size="lg" variant="outline" className="h-24 w-full text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-glow-primary" aria-label="일반 모드 시작">
+          <Button onClick={handleNormalMode} size="lg" variant="outline" className="h-24 w-full text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-glow-primary" aria-label="일반 모드 시작">
             <Gamepad2 className="mr-3 h-6 w-6" />
             일반 모드
           </Button>
-          <Button onClick={() => onStartGame('ranked')} size="lg" variant="outline" className="h-24 w-full text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-glow-primary" aria-label="랭킹 게임 모드 시작">
+          <Button onClick={handleRankedMode} size="lg" variant="outline" className="h-24 w-full text-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground shadow-glow-primary" aria-label="랭킹 게임 모드 시작">
             <Trophy className="mr-3 h-6 w-6" />
             랭겜 모드
           </Button>
-          <Button onClick={() => onStartGame('target')} size="lg" variant="outline" className="h-24 w-full text-xl border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground shadow-glow-secondary" aria-label="타겟 모드 시작">
+          <Button onClick={handleTargetMode} size="lg" variant="outline" className="h-24 w-full text-xl border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground shadow-glow-secondary" aria-label="타겟 모드 시작">
             <Target className="mr-3 h-6 w-6" />
             타겟 모드
           </Button>
-          <Button onClick={() => onStartGame('color')} size="lg" variant="outline" className="h-24 w-full text-xl border-green-500 text-green-500 hover:bg-green-500 hover:text-white shadow-glow-green" aria-label="색상 매칭 모드 시작">
+          <Button onClick={handleColorMode} size="lg" variant="outline" className="h-24 w-full text-xl border-green-500 text-green-500 hover:bg-green-500 hover:text-white shadow-glow-green" aria-label="색상 매칭 모드 시작">
             <Palette className="mr-3 h-6 w-6" />
             색상 매칭
           </Button>
-          <Button onClick={() => onStartGame('sequence')} size="lg" variant="outline" className="h-24 w-full text-xl border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white shadow-glow-purple" aria-label="순서 기억 모드 시작">
+          <Button onClick={handleSequenceMode} size="lg" variant="outline" className="h-24 w-full text-xl border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white shadow-glow-purple" aria-label="순서 기억 모드 시작">
             <Brain className="mr-3 h-6 w-6" />
             순서 기억
           </Button>
         </div>
         
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
-            <Button onClick={() => setShowAchievements(true)} variant="ghost" className="text-lg">
+            <Button onClick={handleShowAchievements} variant="ghost" className="text-lg">
                 <Trophy className="mr-2 h-5 w-5" />
                 업적 보기
             </Button>
@@ -109,11 +120,11 @@ const MenuScreen = ({ onStartGame }: MenuScreenProps) => {
       </div>
       <AchievementsDialog
         open={showAchievements}
-        onOpenChange={setShowAchievements}
+        onOpenChange={handleCloseAchievements}
         unlockedIds={unlockedIds}
       />
     </>
   );
 };
 
-export default MenuScreen;
+export default memo(MenuScreen);

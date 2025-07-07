@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useGameState, GameMode, GameState, TargetProps } from "./useGameState";
 import { useGameTimer } from "./useGameTimer";
 import { useGameModeLogic } from "./useGameModeLogic";
+import { useErrorHandler, GameError, ErrorSeverity } from "@/lib/errors";
 
 type UseGameLogicProps = {
   onRoundComplete: (time: number) => void;
@@ -19,6 +20,7 @@ export const useGameLogic = ({
   onError,
 }: UseGameLogicProps) => {
   const [isGameActive, setIsGameActive] = useState(false);
+  const { handleError, createGameError } = useErrorHandler();
 
   const {
     gameState,
@@ -34,20 +36,37 @@ export const useGameLogic = ({
 
   const handleTimerError = useCallback(
     (error: Error) => {
-      console.error("Timer error:", error);
-      onError?.(error);
+      const gameError = createGameError(
+        `Timer error: ${error.message}`,
+        ErrorSeverity.HIGH,
+        'TIMER_ERROR',
+        { originalError: error.message },
+        { gameMode, round, component: 'useGameLogic' }
+      );
+      
+      handleError(gameError);
+      onError?.(gameError);
+      
       // 에러 발생 시 게임 상태 초기화
       resetGame();
     },
-    [onError, resetGame]
+    [createGameError, handleError, onError, resetGame, gameMode, round]
   );
 
   const handleGameModeError = useCallback(
     (error: Error) => {
-      console.error("Game mode error:", error);
-      onError?.(error);
+      const gameError = createGameError(
+        `Game mode error: ${error.message}`,
+        ErrorSeverity.MEDIUM,
+        'GAME_MODE_ERROR',
+        { originalError: error.message },
+        { gameMode, round, component: 'useGameLogic' }
+      );
+      
+      handleError(gameError);
+      onError?.(gameError);
     },
-    [onError]
+    [createGameError, handleError, onError, gameMode, round]
   );
 
   const handleGameReady = useCallback(() => {

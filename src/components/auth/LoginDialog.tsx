@@ -52,8 +52,8 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
       await signIn(formData.email, formData.password)
       toast.success('로그인 성공!')
       onOpenChange?.(false)
-    } catch (error: any) {
-      setError(error.message || '로그인에 실패했습니다.')
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : '로그인에 실패했습니다.')
     }
   }
 
@@ -80,16 +80,16 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({
       await signUp(formData.email, formData.password, formData.nickname)
       toast.success('회원가입 성공! 이메일을 확인해주세요.')
       onOpenChange?.(false)
-    } catch (error: any) {
-      setError(error.message || '회원가입에 실패했습니다.')
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : '회원가입에 실패했습니다.')
     }
   }
 
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle()
-    } catch (error: any) {
-      setError(error.message || 'Google 로그인에 실패했습니다.')
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Google 로그인에 실패했습니다.')
     }
   }
 
