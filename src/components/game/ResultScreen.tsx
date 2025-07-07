@@ -2,9 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Leaderboard from "./Leaderboard";
-import { Home, RotateCw, Share2 } from "lucide-react";
+import { Home, RotateCw, Share2, BarChart3, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, memo } from "react";
 import { toPng } from 'html-to-image';
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from "@/components/ui/chart";
@@ -15,6 +15,9 @@ import { AchievementService } from "@/lib/services/achievement.service";
 import { ChallengeService } from "@/lib/services/challenge.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { FriendsLeaderboard } from "@/components/social/FriendsLeaderboard";
+import { usePerformanceAnalytics } from "@/hooks/usePerformanceAnalytics";
+import PerformanceInsightCard from "@/components/analytics/PerformanceInsightCard";
+import { Badge } from "@/components/ui/badge";
 
 type ResultScreenProps = {
   results: number[];
@@ -27,6 +30,9 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
   const resultCardRef = useRef<HTMLDivElement>(null);
   const { checkAchievements } = useAchievements();
   const { user } = useAuth();
+  const { analyzeGameResult, isAnalyzing, lastAnalysis } = usePerformanceAnalytics();
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
 
   useEffect(() => {
     const saveGameResults = async () => {
@@ -69,11 +75,32 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
       }
     };
 
+    const performAnalysis = async () => {
+      if (results && gameMode) {
+        try {
+          // 정확도 계산 (3초 이상은 실패로 간주)
+          const accuracy = (results.filter(r => r < 3000).length / results.length) * 100;
+          
+          // 세션 지속 시간 계산
+          const sessionDuration = Date.now() - sessionStartTime;
+          
+          // 성과 분석 실행
+          await analyzeGameResult(results, gameMode, accuracy, sessionDuration);
+          
+          // 자동으로 분석 결과 표시
+          setShowAnalysis(true);
+        } catch (error) {
+          console.error('Failed to analyze game result:', error);
+        }
+      }
+    };
+
     if (results && gameMode) {
       checkAchievements(results, gameMode);
       saveGameResults();
+      performAnalysis();
     }
-  }, [results, gameMode, checkAchievements, user]);
+  }, [results, gameMode, checkAchievements, user, analyzeGameResult, sessionStartTime]);
 
   const validResults = results.filter(r => r < 3000);
   const average = validResults.length > 0 ? validResults.reduce((a, b) => a + b, 0) / validResults.length : 0;
@@ -115,6 +142,21 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
       });
   };
 
+  const handleAnalysisAction = (action: string) => {
+    switch (action) {
+      case 'play_ranked':
+        // TODO: 랭크 모드로 전환하는 로직 추가
+        toast.info('랭크 모드로 전환합니다!');
+        break;
+      case 'play_normal':
+        // 일반 모드로 재시작
+        onRetry();
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
+  };
+
   const getResultDisplay = (time: number) => {
     if (time >= 5000) {
       return { text: "너무 빠름!", className: "text-destructive font-bold" };
@@ -140,10 +182,42 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 animate-fade-in">
-      <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter mb-8 animate-glow">게임 결과</h1>
+      <div className="flex items-center gap-4 mb-8">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter animate-glow">게임 결과</h1>
+        {lastAnalysis && (
+          <Button
+            variant={showAnalysis ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAnalysis(!showAnalysis)}
+            className="flex items-center gap-2"
+          >
+            {showAnalysis ? (
+              <>
+                <BarChart3 className="w-4 h-4" />
+                기본 결과
+              </>
+            ) : (
+              <>
+                <TrendingUp className="w-4 h-4" />
+                성과 분석
+              </>
+            )}
+          </Button>
+        )}
+      </div>
       
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 shadow-glow-primary bg-card" ref={resultCardRef} role="region" aria-labelledby="result-title">
+        {/* 분석 결과 또는 기본 결과 표시 */}
+        {showAnalysis && lastAnalysis ? (
+          <>
+            <PerformanceInsightCard 
+              analysis={lastAnalysis} 
+              onActionClick={handleAnalysisAction}
+              className="lg:col-span-2"
+            />
+          </>
+        ) : (
+          <Card className="lg:col-span-2 shadow-glow-primary bg-card" ref={resultCardRef} role="region" aria-labelledby="result-title">
           <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <CardTitle id="result-title">라운드별 기록</CardTitle>
@@ -201,8 +275,44 @@ const ResultScreen = ({ results, onRetry, onGoToMenu, gameMode }: ResultScreenPr
             </div>
           </CardContent>
         </Card>
+        )}
 
         <div className="flex flex-col gap-8">
+          {/* 분석 중일 때 로딩 표시 */}
+          {isAnalyzing && (
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <span className="text-sm text-muted-foreground">성과 분석 중...</span>
+              </div>
+            </Card>
+          )}
+
+          {/* 분석 완료 시 성취 배지 표시 */}
+          {lastAnalysis && lastAnalysis.messages.length > 0 && (
+            <Card className="p-4">
+              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                이번 게임 하이라이트
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {lastAnalysis.messages.slice(0, 2).map((message, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="outline" 
+                    className={
+                      message.type === 'achievement' ? 'border-yellow-400 text-yellow-400' :
+                      message.type === 'encouragement' ? 'border-blue-400 text-blue-400' :
+                      message.type === 'goal' ? 'border-purple-400 text-purple-400' :
+                      'border-green-400 text-green-400'
+                    }
+                  >
+                    {message.title}
+                  </Badge>
+                ))}
+              </div>
+            </Card>
+          )}
           <Leaderboard />
           {user && <FriendsLeaderboard />}
           <div className="flex flex-col gap-4">
