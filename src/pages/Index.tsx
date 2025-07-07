@@ -100,6 +100,14 @@ const Index = () => {
 
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground">
+      {/* Skip to main content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded focus:no-underline"
+      >
+        메인 콘텐츠로 건너뛰기
+      </a>
+      
        <header className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <TutorialHelpButton />
         <SettingsToggle />
@@ -109,11 +117,16 @@ const Index = () => {
           onProfileChange={setProfile}
         />
       </header>
-      <div className="min-h-screen w-full flex items-center justify-center">
+      <main 
+        id="main-content" 
+        className="min-h-screen w-full flex items-center justify-center"
+        role="main"
+        aria-label="QuickTap Arena 게임 영역"
+      >
         <div className="w-full max-w-6xl px-4">
           {renderApp}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
