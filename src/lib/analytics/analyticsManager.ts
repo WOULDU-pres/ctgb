@@ -8,6 +8,7 @@ import {
 import { GameMode } from '@/hooks/useGameLogic';
 import { PerformanceAnalyzer } from './performanceAnalyzer';
 import { InsightGenerator } from './insightGenerator';
+import { DEFAULT_ANALYTICS_SETTINGS, validateSettings } from '@/lib/settings/settingsDefaults';
 
 /**
  * 분석 데이터 관리자
@@ -48,19 +49,7 @@ export class AnalyticsManager {
   private createDefaultData(): StoredAnalyticsData {
     return {
       gameResults: [],
-      settings: {
-        enableDetailedAnalysis: true,
-        showRankings: true,
-        enablePredictions: true,
-        goalSettings: {
-          autoSetGoals: true,
-          difficultyPreference: 'medium'
-        },
-        privacySettings: {
-          shareAnonymousData: true,
-          enablePersonalization: true
-        }
-      },
+      settings: DEFAULT_ANALYTICS_SETTINGS,
       userProfile: {
         createdAt: Date.now(),
         totalGamesPlayed: 0,
@@ -85,7 +74,7 @@ export class AnalyticsManager {
     
     return {
       gameResults: Array.isArray(data.gameResults) ? data.gameResults : [],
-      settings: { ...defaultData.settings, ...data.settings },
+      settings: validateSettings(data.settings || {}),
       userProfile: { ...defaultData.userProfile, ...data.userProfile },
       cache: { ...defaultData.cache, ...data.cache }
     };
@@ -121,10 +110,13 @@ export class AnalyticsManager {
    * 오래된 데이터 정리
    */
   private cleanupOldData(): void {
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    this.data.gameResults = this.data.gameResults.filter(
-      game => game.timestamp > thirtyDaysAgo
-    );
+    // 설정 기반 데이터 보관 기간 적용
+    this.cleanupBasedOnRetentionPolicy();
+    
+    // 최대 1000개 게임 결과 제한 (용량 제한)
+    this.data.gameResults = this.data.gameResults
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 1000);
   }
 
   /**
@@ -319,13 +311,6 @@ export class AnalyticsManager {
     };
   }
 
-  /**
-   * 설정 업데이트
-   */
-  updateSettings(newSettings: Partial<AnalyticsSettings>): void {
-    this.data.settings = { ...this.data.settings, ...newSettings };
-    this.saveData();
-  }
 
   /**
    * 목표 달성 기록
@@ -380,5 +365,82 @@ export class AnalyticsManager {
       console.error('Failed to import data:', error);
       return false;
     }
+  }
+
+  /**
+   * 현재 설정 가져오기
+   */
+  getSettings(): AnalyticsSettings {
+    return { ...this.data.settings };
+  }
+
+  /**
+   * 설정 업데이트
+   */
+  updateSettings(newSettings: AnalyticsSettings): void {
+    this.data.settings = validateSettings(newSettings);
+    this.saveData();
+  }
+
+  /**
+   * 부분 설정 업데이트
+   */
+  updatePartialSettings(partialSettings: Partial<AnalyticsSettings>): void {
+    const merged = { ...this.data.settings, ...partialSettings };
+    this.data.settings = validateSettings(merged);
+    this.saveData();
+  }
+
+  /**
+   * 메시지 표시 가능 여부 확인 (설정 기반)
+   */
+  shouldShowMessage(messageType: 'achievement' | 'encouragement' | 'advice' | 'goal'): boolean {
+    const { messageSettings, notificationSettings } = this.data.settings;
+    
+    // 조용한 시간 확인
+    if (this.isQuietTime() && notificationSettings.notificationTiming !== 'manual') {
+      return false;
+    }
+
+    // 메시지 타입별 활성화 상태 확인
+    const messageTypeMap = {
+      achievement: messageSettings.enableAchievementMessages,
+      encouragement: messageSettings.enableEncouragementMessages,
+      advice: messageSettings.enableAdviceMessages,
+      goal: messageSettings.enableGoalMessages,
+    };
+
+    return messageTypeMap[messageType];
+  }
+
+  /**
+   * 조용한 시간 확인
+   */
+  private isQuietTime(): boolean {
+    const { quietHours } = this.data.settings.notificationSettings;
+    if (!quietHours.enabled) return false;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // 같은 날짜 내에서의 조용한 시간
+    if (quietHours.startHour <= quietHours.endHour) {
+      return currentHour >= quietHours.startHour && currentHour < quietHours.endHour;
+    }
+    
+    // 자정을 넘나드는 조용한 시간 (예: 22시 ~ 8시)
+    return currentHour >= quietHours.startHour || currentHour < quietHours.endHour;
+  }
+
+  /**
+   * 데이터 보관 기간에 따른 정리 (설정 반영)
+   */
+  private cleanupBasedOnRetentionPolicy(): void {
+    const retentionDays = this.data.settings.privacySettings.dataRetentionDays;
+    const cutoffTime = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+    
+    this.data.gameResults = this.data.gameResults.filter(
+      result => result.timestamp > cutoffTime
+    );
   }
 }
